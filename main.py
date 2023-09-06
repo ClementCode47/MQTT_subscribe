@@ -1,13 +1,36 @@
-# This is a sample Python script.
+import RPi.GPIO as GPIO
+import dht11
+import paho.mqtt.client as mqtt
 
-# Press Maj+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+# initialize GPIO
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.cleanup()
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+instance = dht11.DHT11(pin=11)
+result = instance.read()
+
+if result.is_valid():
+    print("Temperature: %-3.1f C" % result.temperature)
+    print("Humidity: %-3.1f %%" % result.humidity)
+else:
+    print("Error: %d" % result.error_code)
+    import paho.mqtt.client as mqtt
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+broker = "10.4.1.42"
+client = mqtt.Client("Johnny", clean_session=False)
+
+def on_connect(client, userdata, flags, rc):
+    print("Connected with result code " + str(rc))
+    client.subscribe("SMILE", qos=2)
+
+def on_message(client, userdata, msg):
+    print(msg.topic + " " + str(msg.payload))
+
+client.on_connect = on_connect
+client.on_message = on_message
+
+client.connect(broker, 1883, 60)
+
+client.loop_forever()
